@@ -1,0 +1,223 @@
+<div class="timeline-container">
+    <h2>Event Timeline</h2>
+
+    <!-- Event Form -->
+    <form enctype="multipart/form-data">
+        <label for="title">Title</label>
+        <input id="title" type="text" [(ngModel)]="newEvent.title" name="title" required />
+
+        <label for="name">Name</label>
+        <input id="name" type="text" [(ngModel)]="newEvent.name" name="name" required />
+
+        <label for="description">Description (optional)</label>
+        <textarea id="description" [(ngModel)]="newEvent.description" name="description"></textarea>
+
+        <label for="startDate">Start Date</label>
+        <input id="startDate" type="date" [(ngModel)]="newEvent.startDate" name="startDate" required />
+
+        <label for="endDate">End Date</label>
+        <input id="endDate" type="date" [(ngModel)]="newEvent.endDate" name="endDate" required />
+
+        <!-- AI Image Edit Section -->
+        <div class="ai-image-section">
+            <h3>AI Image Edit</h3>
+            <div>
+                <label>Upload Image:</label>
+                <input type="file" (change)="onEditFileSelected($event)" accept="image/*" />
+            </div>
+            <div>
+                <label>Optional Mask:</label>
+                <input type="file" (change)="onMaskSelected($event)" accept="image/*" />
+            </div>
+            <div>
+                <label>Prompt:</label>
+                <input type="text" [(ngModel)]="prompt" name="prompt" placeholder="Describe the edits..." (input)="onPromptChange()"/>
+            </div>
+            <button type="button" (click)="onSubmit()">Modify Image</button>
+
+            <div *ngIf="editedImageUrl" class="result">
+                <h4>Edited Image:</h4>
+                <img [src]="editedImageUrl" alt="Edited result" />
+            </div>
+        </div>
+
+        <!-- Image Upload / Generation -->
+        <div class="file-generate-wrapper">
+            <input type="file" (change)="onFileSelected($event)" accept="image/*"
+                [disabled]="generatedImageUrl !== null" />
+            <button type="button" (click)="generateImageFromPrompt()" [disabled]="!newEvent.description">
+                Generate Image from Description
+            </button>
+        </div>
+        <div *ngIf="generatedImageUrl">
+            <img [src]="generatedImageUrl" alt="Generated Image Preview" style="max-width: 200px; margin-top: 10px;" />
+        </div>
+
+        <!-- AI Video Generation -->
+        <div style="margin-top: 20px;">
+            <h3>AI Image-to-Video</h3>
+            <button type="button" (click)="generateVideoFromImage()">
+                {{ generatingVideo ? 'Generating Video...' : 'Generate Video from Image' }}
+            </button>
+            <div *ngIf="generatedVideoUrl" style="margin-top: 10px;">
+                <h4>Generated Video:</h4>
+                <video [src]="generatedVideoUrl" controls style="max-width: 100%; height: auto;"></video>
+            </div>
+        </div>
+        <!-- Group Selection -->
+        <label for="group">Select Group (optional):</label>
+        <select id="group" [(ngModel)]="selectedGroupId" name="group">
+            <option [ngValue]="null">Private (only me)</option>
+            <option *ngFor="let g of groups" [ngValue]="g.id">{{ g.name }}</option>
+        </select>
+        <!-- Post / Update / Cancel Buttons -->
+        <div style="margin-top: 20px;">
+            <button type="button" (click)="submitEvent()">
+                {{ editingEventId !== null ? 'Update' : 'Post' }}
+            </button>
+            <button *ngIf="editingEventId !== null" type="button" (click)="resetForm()">Cancel</button>
+        </div>
+    </form>
+    <div class="filter-section">
+        <h3>Filter Events</h3>
+        <label>From: <input type="date" [(ngModel)]="filterStartDate" /></label>
+        <label>To: <input type="date" [(ngModel)]="filterEndDate" /></label>
+        <button (click)="applyFilter()">Apply</button>
+        <button (click)="resetFilter()">Reset</button>
+    </div>
+
+    <div class="resume-section" *ngIf="filteredEvents.length">
+        <button (click)="generateResume()">Generate Resume from Filtered Events</button>
+    </div>
+    <!-- Event Timeline -->
+    <ul class="timeline">
+        <li *ngFor="let event of events">
+            <div class="timestamp">{{ event.timestamp | date:'short' }}</div>
+            <div class="content">
+                <strong>{{ event.title }}</strong>
+                <p *ngIf="event.name" style="font-style: italic; color: #555;">By: {{ event.name }}</p>
+                <p *ngIf="event.description">{{ event.description }}</p>
+                <p *ngIf="event.startDate">Start Date: {{ event.startDate | date:'longDate' }}</p>
+                <p *ngIf="event.endDate">End Date: {{ event.endDate | date:'longDate' }}</p>
+
+                <img *ngIf="event.imagePath" [src]="'http://localhost:8081/api/events/images/' + event.imagePath"
+                    alt="Event Image" style="max-width: 200px; margin-top: 10px;" />
+                <video *ngIf="event.videoPath" [src]="'http://localhost:8081/api/events/videos/' + event.videoPath"
+                    controls style="max-width: 300px; margin-top: 10px;">
+                </video>
+
+                <div class="actions">
+                    <button type="button" (click)="startEdit(event)">Edit</button>
+                    <button (click)="deleteEvent(event.id!)">Delete</button>
+                </div>
+
+                <!-- Comments Section -->
+                <div class="comments-section" *ngIf="eventComments[event.id!]?.length">
+                <h4>Comments</h4>
+                <div *ngFor="let comment of eventComments[event.id!]">
+                    <!-- Normal (non-editing) view -->
+                    <div *ngIf="!comment.isEditing">
+                    <p>{{ comment.content }}</p>
+                    <button (click)="startEditingComment(comment)">Edit</button>
+                    <button (click)="deleteComment(comment, event.id!)">Delete</button>
+                    <button (click)="acceptComment(comment, event)">Accept</button>
+                    </div>
+
+                    <!-- Edit mode -->
+                    <div *ngIf="comment.isEditing">
+                    <input [(ngModel)]="comment.editContent" />
+                    <button (click)="saveEditedComment(comment, event.id!)">Save</button>
+                    <button (click)="cancelEditingComment(comment)">Cancel</button>
+                    </div>
+                </div>
+                </div>
+
+                <!-- New Comment Input -->
+                <div class="comment-input">
+                    <input [(ngModel)]="event.newComment" placeholder="Add a comment..." />
+                    <button (click)="submitEventComment(event)">Submit</button>
+                </div>
+            </div>
+        </li>
+    </ul>
+
+    <!-- Merge Videos Button -->
+    <div style="margin-top: 20px;">
+        <button (click)="mergeSelectedVideos()">Merge All Event Videos</button>
+    </div>
+
+    <button (click)="openSlideshow()" [disabled]="!events.length">Play Event Slideshow</button>
+
+    <!-- Display the Merged Video -->
+    <div *ngIf="mergedVideoUrl" style="margin-top: 20px;">
+        <h3>Merged Video Preview</h3>
+        <video [src]="mergedVideoUrl" controls style="max-width: 100%; height: auto;"></video>
+    </div>
+
+    <div class="slideshow-modal" *ngIf="showSlideshow">
+        <div class="slideshow-content">
+            <button class="close-btn" (click)="closeSlideshow()">×</button>
+
+            <div *ngIf="currentSlide">
+                <h3>{{ currentSlide.title }}</h3>
+                <img [src]="'http://localhost:8081/api/events/images/' + currentSlide.imagePath" alt="{{ currentSlide.title }}" style="max-width: 100%; height: auto;" />
+                <p>{{ currentSlide.description }}</p>
+            </div>
+
+            <div class="slideshow-controls">
+                <button (click)="previousSlide()" [disabled]="slideIndex === 0">Previous</button>
+                <button (click)="nextSlide()" [disabled]="slideIndex === slideshowEvents.length - 1">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Life Story Section -->
+    <div class="story-style-options">
+        <label><strong>Select Story Style:</strong></label><br>
+        <label><input type="radio" name="storyStyle" value="comical" [(ngModel)]="storyStyle" /> Comical</label>
+        <label><input type="radio" name="storyStyle" value="theatrical" [(ngModel)]="storyStyle" /> Theatrical</label>
+        <label><input type="radio" name="storyStyle" value="horror" [(ngModel)]="storyStyle" /> Horror</label>
+        <label><input type="radio" name="storyStyle" value="mysterious" [(ngModel)]="storyStyle" /> Mysterious</label>
+        <label><input type="radio" name="storyStyle" value="realistic" [(ngModel)]="storyStyle" /> Realistic</label>
+    </div>
+    <button type="button" (click)="generateLifeStory()" [disabled]="!events.length || loadingStory">
+        {{ loadingStory ? 'Generating...' : 'Generate Life Story' }}
+    </button>
+
+    <div *ngIf="lifeStory" class="story-output">
+        <h3>Generated Life Story</h3>
+        <p style="white-space: pre-line;">{{ lifeStory }}</p>
+
+        <div *ngFor="let event of storyEvents" class="story-event">
+            <h4>{{ event.title }} ({{ event.startDate | date:'longDate' }})</h4>
+            <p *ngIf="event.description">{{ event.description }}</p>
+            <img *ngIf="event.imagePath" [src]="'http://localhost:8081/api/events/images/' + event.imagePath"
+                alt="{{ event.title }}" style="max-width: 300px; margin: 10px 0;" />
+            <hr />
+        </div>
+
+        <div *ngIf="lifeStory">
+            <h3>Comments on Life Story</h3>
+            <ul>
+                <li *ngFor="let c of lifeStoryComments">
+                    <div *ngIf="!c.isEditing">
+                        {{ c.content }} — {{ c.timestamp | date:'short' }}
+                        <button type="button" (click)="startEditingLifeStoryComment(c)">Edit</button>
+                        <button type="button" (click)="deleteLifeStoryComment(c)">Delete</button>
+                    </div>
+                    <div *ngIf="c.isEditing">
+                        <input [(ngModel)]="c.editContent" />
+                        <button type="button" (click)="saveEditedLifeStoryComment(c)">Save</button>
+                        <button type="button" (click)="cancelEditingLifeStoryComment(c)">Cancel</button>
+                    </div>
+                </li>
+            </ul>
+            <input [(ngModel)]="newLifeStoryComment" placeholder="Add a comment..." />
+            <button type="button" (click)="submitLifeStoryComment()">Post Comment</button>
+        </div>
+    </div>
+    <div *ngIf="resumeText" class="resume-output">
+        <h3>Generated Resume</h3>
+        <pre>{{ resumeText }}</pre>
+    </div>
+</div>

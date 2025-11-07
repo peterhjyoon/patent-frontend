@@ -1,0 +1,45 @@
+.image-panel {
+    flex: 1;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-panel img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.textbox-panel {
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    background-color: #fff;
+}
+
+.textbox-panel input[type="text"] {
+    
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.generated-image {
+    width: 300px;
+    /* or any other fixed size */
+    height: auto;
+    /* maintains aspect ratio */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.large-text-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 18px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}

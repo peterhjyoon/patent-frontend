@@ -1,0 +1,15 @@
+<p>ai-image-prompt-result works!</p>
+<div class="image-panel">
+    <img *ngIf="imageUrl" [src]="imageUrl" alt="Placeholder Image" class="generated-image">
+</div>
+<div class="textbox-panel">
+    <input type="text" placeholder="Type your prompt here..." #promptInput>
+    <button (click)="submitPrompt(promptInput.value)" class="btn btn-success">Submit</button>
+</div>
+<!-- <div class="text-response-panel">
+    <input type="text" placeholder="Ask something..." class="large-text-input" #textInput>
+    <button (click)="submitText(textInput.value)" class="btn btn-primary">Get Response</button>
+</div> -->
+<div class="text-result" *ngIf="textResponse">
+    <p><strong>Response:</strong> {{ textResponse }}</p>
+</div>

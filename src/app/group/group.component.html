@@ -1,0 +1,12 @@
+<h2>My Groups</h2>
+
+<input [(ngModel)]="groupName" placeholder="New group name" />
+<button (click)="createGroup()">Create Group</button>
+
+<div *ngFor="let g of groups">
+    <h3>{{ g.name }}</h3>
+    <p>Members: {{ getMemberNames(g) }}</p>
+
+    <input [(ngModel)]="userIdToAdd" placeholder="User ID to add" type="number" />
+    <button (click)="addMember(g.id)">Add Member</button>
+</div>

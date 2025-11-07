@@ -1,0 +1,16 @@
+<h1>Sign Up</h1>
+<div class="container">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+
+    <label>Username:</label>
+    <input type="text" [(ngModel)]="username" class="form-control">
+
+    <label>Password:</label>
+    <input type="password" [(ngModel)]="password" class="form-control">
+
+    <label>Confirm Password:</label>
+    <input type="password" [(ngModel)]="confirmPassword" class="form-control">
+
+    <button (click)="handleSignup()" class="btn btn-primary mt-3">Sign Up</button>
+</div>
